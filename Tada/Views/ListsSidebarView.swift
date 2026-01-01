@@ -86,7 +86,7 @@ struct ListsSidebarView: View {
             .onMove(perform: moveLists)
             .onDelete(perform: confirmDeleteLists)
         }
-        .navigationTitle("All lists")
+        .navigationTitle("Lists")
         .toolbar {
             ToolbarItem {
                 Button {
