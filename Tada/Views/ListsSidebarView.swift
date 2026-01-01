@@ -129,13 +129,11 @@ struct ListsSidebarView: View {
             // Only auto-select on first appearance, not when navigating back
             if !hasAppeared {
                 hasAppeared = true
-                if selectedList == nil {
-                    // Restore last selected list, or fall back to first
+                if selectedList == nil && !lastSelectedListID.isEmpty {
+                    // Restore last selected list if we have one saved
                     if let lastID = UUID(uuidString: lastSelectedListID),
                        let lastList = lists.first(where: { $0.id == lastID }) {
                         selectedList = lastList
-                    } else if let first = lists.first {
-                        selectedList = first
                     }
                 }
             }

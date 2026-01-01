@@ -13,6 +13,8 @@ struct TodoListView: View {
     @ObservedObject var list: TodoList
     var cloudKitManager: CloudKitManager
 
+    @FetchRequest private var items: FetchedResults<TodoItem>
+
     @State private var newItemText = ""
     @FocusState private var isInputFocused: Bool
     @State private var currentShare: CKShare?
@@ -20,8 +22,17 @@ struct TodoListView: View {
     @State private var draggingItem: TodoItem?
     @State private var selectedItem: TodoItem?
 
+    init(list: TodoList, cloudKitManager: CloudKitManager) {
+        self.list = list
+        self.cloudKitManager = cloudKitManager
+        _items = FetchRequest(
+            sortDescriptors: [NSSortDescriptor(keyPath: \TodoItem.order, ascending: true)],
+            predicate: NSPredicate(format: "list == %@", list)
+        )
+    }
+
     private var hasCompletedItems: Bool {
-        list.itemsArray.contains { $0.isCompleted && !$0.isHidden }
+        items.contains { $0.isCompleted && !$0.isHidden }
     }
 
     var body: some View {
@@ -113,16 +124,17 @@ struct TodoListView: View {
         .navigationTitle(list.name ?? "Untitled")
         .toolbar {
             ToolbarItem {
+                SyncStatusView(cloudKitManager: cloudKitManager)
+                    .opacity(0.5)
+            }
+
+            ToolbarItem {
                 Button {
                     cleanUp()
                 } label: {
                     Label("Clean Up", systemImage: "wind")
                 }
                 .disabled(!hasCompletedItems)
-            }
-
-            ToolbarItem {
-                SyncStatusView(cloudKitManager: cloudKitManager)
             }
 
             ToolbarItem {

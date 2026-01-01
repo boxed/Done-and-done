@@ -11,15 +11,12 @@ struct SyncStatusView: View {
     var body: some View {
         Group {
             switch cloudKitManager.syncStatus {
-            case .idle:
+            case .idle, .success:
                 Image(systemName: "icloud")
                     .foregroundStyle(.secondary)
             case .syncing:
                 ProgressView()
                     .controlSize(.small)
-            case .success:
-                Image(systemName: "checkmark.icloud.fill")
-                    .foregroundStyle(.green)
             case .error:
                 Image(systemName: "exclamationmark.icloud.fill")
                     .foregroundStyle(.red)
