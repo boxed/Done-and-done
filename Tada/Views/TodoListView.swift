@@ -115,15 +115,15 @@ struct TodoListView: View {
                     }
                 )
 
-                if !newItemText.isEmpty {
-                    Button {
-                        addItem()
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                    }
-                    .buttonStyle(.plain)
+                Button {
+                    addItem()
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
                 }
+                .buttonStyle(.plain)
+                .opacity(newItemText.isEmpty ? 0 : 1)
+                .disabled(newItemText.isEmpty)
             }
             .frame(height: 22)
             .padding()
