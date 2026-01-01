@@ -28,6 +28,20 @@ extension TodoItem {
             startedTime = nil
         } else {
             startedTime = Date()
+            moveToTop()
+        }
+    }
+
+    private func moveToTop() {
+        guard let list = list else { return }
+        let activeItems = list.activeItems.filter { $0 != self }
+
+        // Set this item to order 0
+        self.order = 0
+
+        // Shift all other active items down
+        for (index, item) in activeItems.enumerated() {
+            item.order = Int32(index + 1)
         }
     }
 

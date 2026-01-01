@@ -19,7 +19,6 @@ struct TodoListView: View {
     @State private var isInputFocused: Bool = false
     @State private var currentShare: CKShare?
     @State private var showingShareSheet = false
-    @State private var draggingItem: TodoItem?
     @State private var selectedItem: TodoItem?
 
     init(list: TodoList, cloudKitManager: CloudKitManager) {
@@ -42,67 +41,41 @@ struct TodoListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    // Active items section
-                    ForEach(activeItems) { item in
-                        TodoItemRow(item: item, isSelected: selectedItem == item) {
-                            deleteItem(item)
-                        } onSelect: {
-                            selectedItem = item
-                        }
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
-                        .background(itemBackground(for: item))
-                        .draggable(item.objectID.uriRepresentation().absoluteString) {
-                            Text(item.text ?? "")
-                                .padding(8)
-                                .background(.regularMaterial)
-                                .cornerRadius(8)
-                        }
-                        .dropDestination(for: String.self) { items, location in
-                            guard let uriString = items.first,
-                                  let url = URL(string: uriString),
-                                  let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url),
-                                  let droppedItem = try? viewContext.existingObject(with: objectID) as? TodoItem else {
-                                return false
-                            }
-                            reorderItem(droppedItem, before: item)
-                            return true
-                        } isTargeted: { isTargeted in
-                            // Visual feedback handled by background color
-                        }
-                        Divider()
-                            .padding(.leading)
+            List {
+                // Active items section
+                ForEach(activeItems) { item in
+                    TodoItemRow(
+                        item: item,
+                        isSelected: selectedItem == item
+                    ) {
+                        deleteItem(item)
+                    } onSelect: {
+                        selectedItem = item
                     }
+                    .listRowBackground(itemBackground(for: item))
+                }
+                .onMove(perform: moveItems)
 
-                    // Completed items section
-                    if !completedItems.isEmpty {
-                        HStack {
-                            Text("Completed")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-                        .padding(.top, 16)
-                        .padding(.bottom, 8)
-
+                // Completed items section
+                if !completedItems.isEmpty {
+                    Section {
                         ForEach(completedItems) { item in
                             TodoItemRow(item: item, isSelected: selectedItem == item) {
                                 deleteItem(item)
                             } onSelect: {
                                 selectedItem = item
                             }
-                            .padding(.horizontal)
-                            .padding(.vertical, 8)
-                            .background(itemBackground(for: item))
-                            Divider()
-                                .padding(.leading)
+                            .listRowBackground(itemBackground(for: item))
                         }
+                    } header: {
+                        Text("Completed")
                     }
                 }
             }
+            .listStyle(.plain)
+            #if os(iOS)
+            .environment(\.editMode, .constant(.active))
+            #endif
 
             // Quick entry field
             HStack {
@@ -159,9 +132,7 @@ struct TodoListView: View {
     }
 
     private func itemBackground(for item: TodoItem) -> Color {
-        if draggingItem == item {
-            return Color.accentColor.opacity(0.2)
-        } else if selectedItem == item {
+        if selectedItem == item {
             return Color.accentColor.opacity(0.1)
         }
         return Color.clear
@@ -192,22 +163,13 @@ struct TodoListView: View {
         }
     }
 
-    private func reorderItem(_ movedItem: TodoItem, before targetItem: TodoItem) {
-        var items = activeItems
-        guard let movedIndex = items.firstIndex(of: movedItem),
-              let targetIndex = items.firstIndex(of: targetItem),
-              movedIndex != targetIndex else { return }
-
-        withAnimation {
-            items.remove(at: movedIndex)
-            let insertIndex = movedIndex < targetIndex ? targetIndex - 1 : targetIndex
-            items.insert(movedItem, at: insertIndex)
-
-            for (index, item) in items.enumerated() {
-                item.order = Int32(index)
-            }
-            try? viewContext.save()
+    private func moveItems(from source: IndexSet, to destination: Int) {
+        var reorderedItems = activeItems
+        reorderedItems.move(fromOffsets: source, toOffset: destination)
+        for (index, item) in reorderedItems.enumerated() {
+            item.order = Int32(index)
         }
+        try? viewContext.save()
     }
 }
 
