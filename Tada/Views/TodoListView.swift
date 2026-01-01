@@ -32,11 +32,11 @@ struct TodoListView: View {
     }
 
     private var activeItems: [TodoItem] {
-        items.filter { !$0.isCompleted && !$0.isHidden }
+        items.filter { !$0.isCompleted }
     }
 
     private var completedItems: [TodoItem] {
-        items.filter { $0.isCompleted && !$0.isHidden }
+        items.filter { $0.isCompleted }
             .sorted { ($0.completionTime ?? .distantPast) > ($1.completionTime ?? .distantPast) }
     }
 
@@ -138,7 +138,6 @@ struct TodoListView: View {
         .toolbar {
             ToolbarItem {
                 SyncStatusView(cloudKitManager: cloudKitManager)
-                    .opacity(0.5)
             }
 
             ToolbarItem {

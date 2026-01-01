@@ -56,7 +56,7 @@ struct TadaApp: App {
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(selectedItem == nil)
 
-                Button("Start/Stop") {
+                Button("Toggle Star") {
                     if let item = selectedItem {
                         item.toggleStarted()
                         try? persistenceController.container.viewContext.save()
@@ -80,27 +80,7 @@ struct TadaApp: App {
         .onChange(of: scenePhase) { oldPhase, newPhase in
             if newPhase == .active {
                 persistenceController.deleteOldCompletedItems()
-            } else if newPhase == .inactive || newPhase == .background {
-                hideCompletedItems()
             }
-        }
-    }
-
-    private func hideCompletedItems() {
-        let context = persistenceController.container.viewContext
-        let request: NSFetchRequest<TodoItem> = TodoItem.fetchRequest()
-        request.predicate = NSPredicate(format: "completionTime != nil AND isHidden == NO")
-
-        do {
-            let completedItems = try context.fetch(request)
-            for item in completedItems {
-                item.isHidden = true
-            }
-            if !completedItems.isEmpty {
-                try context.save()
-            }
-        } catch {
-            print("Failed to hide completed items: \(error)")
         }
     }
 }

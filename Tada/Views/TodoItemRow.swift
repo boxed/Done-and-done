@@ -85,7 +85,7 @@ struct TodoItemRow: View {
                 }
             } label: {
                 Label(
-                    item.isStarted ? "Stop" : "Start",
+                    item.isStarted ? "Unstar" : "Star",
                     systemImage: item.isStarted ? "star.slash" : "star.fill"
                 )
             }
@@ -105,7 +105,7 @@ struct TodoItemRow: View {
                 }
             } label: {
                 Label(
-                    item.isStarted ? "Stop Working" : "Start Working",
+                    item.isStarted ? "Unstar" : "Star",
                     systemImage: item.isStarted ? "star.slash" : "star"
                 )
             }
