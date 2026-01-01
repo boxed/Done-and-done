@@ -148,7 +148,6 @@ struct TodoListView: View {
         .focusedSceneValue(\.selectedList, list)
         .focusedSceneValue(\.selectedItem, selectedItem)
         #if os(iOS)
-        .toolbarRole(.editor)
         .sheet(isPresented: $showingShareSheet) {
             if let share = currentShare {
                 CloudSharingSheet(share: share, list: list)

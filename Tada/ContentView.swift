@@ -28,9 +28,6 @@ struct ContentView: View {
                 )
             }
         }
-        #if os(iOS)
-        .navigationSplitViewStyle(.balanced)
-        #endif
     }
 }
 
