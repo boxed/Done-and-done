@@ -16,7 +16,7 @@ struct TodoListView: View {
     @FetchRequest private var items: FetchedResults<TodoItem>
 
     @State private var newItemText = ""
-    @FocusState private var isInputFocused: Bool
+    @State private var isInputFocused: Bool = false
     @State private var currentShare: CKShare?
     @State private var showingShareSheet = false
     @State private var draggingItem: TodoItem?
@@ -101,12 +101,19 @@ struct TodoListView: View {
 
             // Quick entry field
             HStack {
-                TextField("Add item...", text: $newItemText)
-                    .textFieldStyle(.plain)
-                    .focused($isInputFocused)
-                    .onSubmit {
-                        addItem()
+                QuickEntryTextField(
+                    placeholder: "Add item...",
+                    text: $newItemText,
+                    isFocused: $isInputFocused,
+                    onSubmit: {
+                        if newItemText.isEmpty {
+                            return false  // Dismiss keyboard
+                        } else {
+                            addItem()
+                            return true   // Keep keyboard open
+                        }
                     }
+                )
 
                 if !newItemText.isEmpty {
                     Button {
@@ -118,6 +125,7 @@ struct TodoListView: View {
                     .buttonStyle(.plain)
                 }
             }
+            .frame(height: 22)
             .padding()
             .background(.bar)
         }
