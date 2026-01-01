@@ -2,65 +2,39 @@
 //  ContentView.swift
 //  Tada
 //
-//  Created by Anders Hovmöller on 2025-12-31.
-//
 
 import SwiftUI
-import SwiftData
+import CoreData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @State private var selectedList: TodoList?
+    @State private var cloudKitManager = CloudKitManager()
+    @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-#if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
-            .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-#endif
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            ListsSidebarView(selectedList: $selectedList)
+                #if os(macOS)
+                .navigationSplitViewColumnWidth(min: 180, ideal: 220)
+                #endif
         } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+            if let list = selectedList {
+                TodoListView(list: list, cloudKitManager: cloudKitManager)
+            } else {
+                ContentUnavailableView(
+                    "No List Selected",
+                    systemImage: "checklist",
+                    description: Text("Select a list from the sidebar or create a new one.")
+                )
             }
         }
+        #if os(iOS)
+        .navigationSplitViewStyle(.balanced)
+        #endif
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }
