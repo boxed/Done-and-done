@@ -31,8 +31,13 @@ struct TodoListView: View {
         )
     }
 
-    private var hasCompletedItems: Bool {
-        items.contains { $0.isCompleted && !$0.isHidden }
+    private var activeItems: [TodoItem] {
+        items.filter { !$0.isCompleted && !$0.isHidden }
+    }
+
+    private var completedItems: [TodoItem] {
+        items.filter { $0.isCompleted && !$0.isHidden }
+            .sorted { ($0.completionTime ?? .distantPast) > ($1.completionTime ?? .distantPast) }
     }
 
     var body: some View {
@@ -40,7 +45,7 @@ struct TodoListView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     // Active items section
-                    ForEach(list.activeItems) { item in
+                    ForEach(activeItems) { item in
                         TodoItemRow(item: item, isSelected: selectedItem == item) {
                             deleteItem(item)
                         } onSelect: {
@@ -72,7 +77,7 @@ struct TodoListView: View {
                     }
 
                     // Completed items section
-                    if !list.completedItems.isEmpty {
+                    if !completedItems.isEmpty {
                         HStack {
                             Text("Completed")
                                 .font(.subheadline)
@@ -83,7 +88,7 @@ struct TodoListView: View {
                         .padding(.top, 16)
                         .padding(.bottom, 8)
 
-                        ForEach(list.completedItems) { item in
+                        ForEach(completedItems) { item in
                             TodoItemRow(item: item, isSelected: selectedItem == item) {
                                 deleteItem(item)
                             } onSelect: {
@@ -137,15 +142,6 @@ struct TodoListView: View {
             }
 
             ToolbarItem {
-                Button {
-                    cleanUp()
-                } label: {
-                    Label("Clean Up", systemImage: "wind")
-                }
-                .disabled(!hasCompletedItems)
-            }
-
-            ToolbarItem {
                 ShareButton(list: list, currentShare: $currentShare, showingShareSheet: $showingShareSheet)
             }
         }
@@ -162,9 +158,6 @@ struct TodoListView: View {
         .onReceive(NotificationCenter.default.publisher(for: .newItem)) { _ in
             isInputFocused = true
         }
-        .onReceive(NotificationCenter.default.publisher(for: .cleanUp)) { _ in
-            cleanUp()
-        }
     }
 
     private func itemBackground(for item: TodoItem) -> Color {
@@ -179,7 +172,7 @@ struct TodoListView: View {
     private func addItem() {
         guard !newItemText.isEmpty else { return }
 
-        let maxOrder = list.activeItems.map(\.order).max() ?? -1
+        let maxOrder = activeItems.map(\.order).max() ?? -1
         let newItem = TodoItem.create(
             text: newItemText,
             order: maxOrder + 1,
@@ -202,7 +195,7 @@ struct TodoListView: View {
     }
 
     private func reorderItem(_ movedItem: TodoItem, before targetItem: TodoItem) {
-        var items = list.activeItems
+        var items = activeItems
         guard let movedIndex = items.firstIndex(of: movedItem),
               let targetIndex = items.firstIndex(of: targetItem),
               movedIndex != targetIndex else { return }
@@ -217,16 +210,6 @@ struct TodoListView: View {
             }
             try? viewContext.save()
         }
-    }
-
-    private func cleanUp() {
-        withAnimation {
-            for item in list.completedItems {
-                item.isHidden = true
-            }
-            try? viewContext.save()
-        }
-        cloudKitManager.triggerSync()
     }
 }
 

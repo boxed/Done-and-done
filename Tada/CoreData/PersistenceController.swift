@@ -115,6 +115,27 @@ struct PersistenceController {
         fetchShare(for: list) != nil
     }
 
+    // MARK: - Cleanup Old Completed Items
+
+    func deleteOldCompletedItems() {
+        let context = container.viewContext
+        let request: NSFetchRequest<TodoItem> = TodoItem.fetchRequest()
+        let cutoffDate = Date().addingTimeInterval(-24 * 60 * 60) // 24 hours ago
+        request.predicate = NSPredicate(format: "completionTime != nil AND completionTime < %@", cutoffDate as NSDate)
+
+        do {
+            let oldItems = try context.fetch(request)
+            for item in oldItems {
+                context.delete(item)
+            }
+            if !oldItems.isEmpty {
+                try context.save()
+            }
+        } catch {
+            print("Failed to delete old completed items: \(error)")
+        }
+    }
+
     // MARK: - Save Context
 
     func save() {

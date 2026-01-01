@@ -47,14 +47,6 @@ struct TadaApp: App {
             }
 
             CommandMenu("List") {
-                Button("Clean Up") {
-                    NotificationCenter.default.post(name: .cleanUp, object: nil)
-                }
-                .keyboardShortcut("k", modifiers: .command)
-                .disabled(selectedList == nil)
-
-                Divider()
-
                 Button("Mark Complete") {
                     if let item = selectedItem {
                         item.toggleCompletion()
@@ -86,7 +78,9 @@ struct TadaApp: App {
             }
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
-            if newPhase == .inactive || newPhase == .background {
+            if newPhase == .active {
+                persistenceController.deleteOldCompletedItems()
+            } else if newPhase == .inactive || newPhase == .background {
                 hideCompletedItems()
             }
         }
@@ -116,6 +110,5 @@ struct TadaApp: App {
 extension Notification.Name {
     static let newList = Notification.Name("newList")
     static let newItem = Notification.Name("newItem")
-    static let cleanUp = Notification.Name("cleanUp")
     static let toggleComplete = Notification.Name("toggleComplete")
 }

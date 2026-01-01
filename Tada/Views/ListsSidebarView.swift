@@ -23,6 +23,9 @@ struct ListsSidebarView: View {
     @State private var listToDelete: TodoList?
     @State private var showingDeleteConfirmation = false
     @State private var hasAppeared = false
+    @State private var listToDuplicate: TodoList?
+    @State private var showingDuplicateDialog = false
+    @State private var duplicateListName = ""
 
     @AppStorage("lastSelectedListID") private var lastSelectedListID: String = ""
 
@@ -60,6 +63,14 @@ struct ListsSidebarView: View {
                         startEditing(list)
                     } label: {
                         Label("Rename", systemImage: "pencil")
+                    }
+
+                    Button {
+                        listToDuplicate = list
+                        duplicateListName = "\(list.name ?? "List") Copy"
+                        showingDuplicateDialog = true
+                    } label: {
+                        Label("Duplicate", systemImage: "doc.on.doc")
                     }
 
                     Divider()
@@ -121,6 +132,19 @@ struct ListsSidebarView: View {
             if let list = listToDelete {
                 Text("Are you sure you want to delete \"\(list.name ?? "this list")\"? This will also delete all \(list.itemsArray.count) items in the list.")
             }
+        }
+        .alert("Duplicate List", isPresented: $showingDuplicateDialog) {
+            TextField("List name", text: $duplicateListName)
+            Button("Cancel", role: .cancel) {
+                duplicateListName = ""
+                listToDuplicate = nil
+            }
+            Button("Duplicate") {
+                duplicateList()
+            }
+            .disabled(duplicateListName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        } message: {
+            Text("Enter a name for the copied list.")
         }
         .onAppear {
             if lists.isEmpty {
@@ -223,5 +247,38 @@ struct ListsSidebarView: View {
             list.order = Int32(index)
         }
         try? viewContext.save()
+    }
+
+    private func duplicateList() {
+        guard let sourceList = listToDuplicate else { return }
+        let trimmedName = duplicateListName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+
+        withAnimation {
+            let newList = TodoList.create(
+                name: trimmedName,
+                order: Int32(lists.count),
+                in: viewContext
+            )
+
+            // Copy all non-hidden items
+            for sourceItem in sourceList.itemsArray where !sourceItem.isHidden {
+                let newItem = TodoItem(context: viewContext)
+                newItem.id = UUID()
+                newItem.text = sourceItem.text
+                newItem.creationTime = Date()
+                newItem.order = sourceItem.order
+                newItem.isHidden = false
+                newItem.completionTime = sourceItem.completionTime
+                newItem.startedTime = sourceItem.startedTime
+                newItem.list = newList
+            }
+
+            try? viewContext.save()
+            selectedList = newList
+        }
+
+        duplicateListName = ""
+        listToDuplicate = nil
     }
 }
