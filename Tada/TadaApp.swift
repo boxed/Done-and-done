@@ -58,7 +58,7 @@ struct TadaApp: App {
 
                 Button("Toggle Star") {
                     if let item = selectedItem {
-                        item.toggleStarted()
+                        item.toggleStarred()
                         try? persistenceController.container.viewContext.save()
                     }
                 }

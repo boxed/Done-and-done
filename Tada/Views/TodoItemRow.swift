@@ -64,11 +64,16 @@ struct TodoItemRow: View {
 
             Spacer(minLength: 0)
 
-            if item.isStarted {
-                Image(systemName: "star.fill")
-                    .foregroundStyle(.yellow)
-                    .font(.caption)
+            Button {
+                withAnimation {
+                    item.toggleStarred()
+                    try? viewContext.save()
+                }
+            } label: {
+                Image(systemName: item.isStarred ? "star.fill" : "star")
+                    .foregroundStyle(item.isStarred ? .yellow : .secondary)
             }
+            .buttonStyle(.plain)
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
@@ -80,13 +85,13 @@ struct TodoItemRow: View {
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             Button {
                 withAnimation {
-                    item.toggleStarted()
+                    item.toggleStarred()
                     try? viewContext.save()
                 }
             } label: {
                 Label(
-                    item.isStarted ? "Unstar" : "Star",
-                    systemImage: item.isStarted ? "star.slash" : "star.fill"
+                    item.isStarred ? "Unstar" : "Star",
+                    systemImage: item.isStarred ? "star.slash" : "star.fill"
                 )
             }
             .tint(.yellow)
@@ -100,13 +105,13 @@ struct TodoItemRow: View {
 
             Button {
                 withAnimation {
-                    item.toggleStarted()
+                    item.toggleStarred()
                     try? viewContext.save()
                 }
             } label: {
                 Label(
-                    item.isStarted ? "Unstar" : "Star",
-                    systemImage: item.isStarted ? "star.slash" : "star"
+                    item.isStarred ? "Unstar" : "Star",
+                    systemImage: item.isStarred ? "star.slash" : "star"
                 )
             }
 

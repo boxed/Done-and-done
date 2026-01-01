@@ -11,8 +11,8 @@ extension TodoItem {
         completionTime != nil
     }
 
-    var isStarted: Bool {
-        startedTime != nil && !isCompleted
+    var isStarred: Bool {
+        startedTime != nil
     }
 
     func toggleCompletion() {
@@ -20,12 +20,11 @@ extension TodoItem {
             completionTime = nil
         } else {
             completionTime = Date()
-            startedTime = nil
         }
     }
 
-    func toggleStarted() {
-        if isStarted {
+    func toggleStarred() {
+        if isStarred {
             startedTime = nil
         } else {
             startedTime = Date()
