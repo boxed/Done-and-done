@@ -20,10 +20,9 @@ struct SyncStatusView: View {
                 Image(systemName: "icloud")
                     .foregroundStyle(.secondary)
                     .opacity(isPulsing ? 0.3 : 0.8)
+                    .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isPulsing)
                     .onAppear {
-                        withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
-                            isPulsing = true
-                        }
+                        isPulsing = true
                     }
                     .onDisappear {
                         isPulsing = false

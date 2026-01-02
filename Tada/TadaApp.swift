@@ -14,10 +14,23 @@ struct TadaApp: App {
     @FocusedValue(\.selectedList) var selectedList
     @FocusedValue(\.selectedItem) var selectedItem
 
+    init() {
+        #if os(iOS)
+        UIApplication.shared.applicationSupportsShakeToEdit = true
+        #endif
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                #if os(iOS)
+                .onShake {
+                    if persistenceController.container.viewContext.undoManager?.canUndo == true {
+                        persistenceController.container.viewContext.undoManager?.undo()
+                    }
+                }
+                #endif
         }
         .commands {
             CommandGroup(replacing: .undoRedo) {
@@ -92,3 +105,37 @@ extension Notification.Name {
     static let newItem = Notification.Name("newItem")
     static let toggleComplete = Notification.Name("toggleComplete")
 }
+
+// MARK: - Shake Gesture Support
+
+#if os(iOS)
+extension UIWindow {
+    open override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        if motion == .motionShake {
+            NotificationCenter.default.post(name: .deviceDidShake, object: nil)
+        }
+        super.motionEnded(motion, with: event)
+    }
+}
+
+extension Notification.Name {
+    static let deviceDidShake = Notification.Name("deviceDidShake")
+}
+
+struct ShakeDetector: ViewModifier {
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in
+                action()
+            }
+    }
+}
+
+extension View {
+    func onShake(_ action: @escaping () -> Void) -> some View {
+        modifier(ShakeDetector(action: action))
+    }
+}
+#endif

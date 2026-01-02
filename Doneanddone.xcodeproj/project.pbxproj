@@ -24,18 +24,18 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		AE58AD592F05823300E05439 /* Tada.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tada.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AE58AD592F05823300E05439 /* Done&done.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Done&done.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE58AD6A2F05823500E05439 /* TadaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TadaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE58AD742F05823500E05439 /* TadaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TadaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		AE58AD7C2F05823500E05439 /* Exceptions for "Tada" folder in "Tada" target */ = {
+		AE58AD7C2F05823500E05439 /* Exceptions for "Tada" folder in "Done&done" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = AE58AD582F05823300E05439 /* Tada */;
+			target = AE58AD582F05823300E05439 /* Done&done */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -43,7 +43,7 @@
 		AE58AD5B2F05823300E05439 /* Tada */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				AE58AD7C2F05823500E05439 /* Exceptions for "Tada" folder in "Tada" target */,
+				AE58AD7C2F05823500E05439 /* Exceptions for "Tada" folder in "Done&done" target */,
 			);
 			path = Tada;
 			sourceTree = "<group>";
@@ -98,7 +98,7 @@
 		AE58AD5A2F05823300E05439 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AE58AD592F05823300E05439 /* Tada.app */,
+				AE58AD592F05823300E05439 /* Done&done.app */,
 				AE58AD6A2F05823500E05439 /* TadaTests.xctest */,
 				AE58AD742F05823500E05439 /* TadaUITests.xctest */,
 			);
@@ -108,9 +108,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AE58AD582F05823300E05439 /* Tada */ = {
+		AE58AD582F05823300E05439 /* Done&done */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AE58AD7D2F05823500E05439 /* Build configuration list for PBXNativeTarget "Tada" */;
+			buildConfigurationList = AE58AD7D2F05823500E05439 /* Build configuration list for PBXNativeTarget "Done&done" */;
 			buildPhases = (
 				AE58AD552F05823300E05439 /* Sources */,
 				AE58AD562F05823300E05439 /* Frameworks */,
@@ -123,11 +123,11 @@
 			fileSystemSynchronizedGroups = (
 				AE58AD5B2F05823300E05439 /* Tada */,
 			);
-			name = Tada;
+			name = "Done&done";
 			packageProductDependencies = (
 			);
 			productName = Tada;
-			productReference = AE58AD592F05823300E05439 /* Tada.app */;
+			productReference = AE58AD592F05823300E05439 /* Done&done.app */;
 			productType = "com.apple.product-type.application";
 		};
 		AE58AD692F05823500E05439 /* TadaTests */ = {
@@ -199,7 +199,7 @@
 					};
 				};
 			};
-			buildConfigurationList = AE58AD542F05823300E05439 /* Build configuration list for PBXProject "Tada" */;
+			buildConfigurationList = AE58AD542F05823300E05439 /* Build configuration list for PBXProject "Doneanddone" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -213,7 +213,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				AE58AD582F05823300E05439 /* Tada */,
+				AE58AD582F05823300E05439 /* Done&done */,
 				AE58AD692F05823500E05439 /* TadaTests */,
 				AE58AD732F05823500E05439 /* TadaUITests */,
 			);
@@ -271,12 +271,12 @@
 /* Begin PBXTargetDependency section */
 		AE58AD6C2F05823500E05439 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = AE58AD582F05823300E05439 /* Tada */;
+			target = AE58AD582F05823300E05439 /* Done&done */;
 			targetProxy = AE58AD6B2F05823500E05439 /* PBXContainerItemProxy */;
 		};
 		AE58AD762F05823500E05439 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = AE58AD582F05823300E05439 /* Tada */;
+			target = AE58AD582F05823300E05439 /* Done&done */;
 			targetProxy = AE58AD752F05823500E05439 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -305,8 +305,8 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -351,8 +351,8 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -595,7 +595,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		AE58AD542F05823300E05439 /* Build configuration list for PBXProject "Tada" */ = {
+		AE58AD542F05823300E05439 /* Build configuration list for PBXProject "Doneanddone" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AE58AD802F05823500E05439 /* Debug */,
@@ -604,7 +604,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AE58AD7D2F05823500E05439 /* Build configuration list for PBXNativeTarget "Tada" */ = {
+		AE58AD7D2F05823500E05439 /* Build configuration list for PBXNativeTarget "Done&done" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AE58AD7E2F05823500E05439 /* Debug */,
