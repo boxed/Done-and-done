@@ -25,7 +25,10 @@ struct TodoListView: View {
         self.list = list
         self.cloudKitManager = cloudKitManager
         _items = FetchRequest(
-            sortDescriptors: [NSSortDescriptor(keyPath: \TodoItem.order, ascending: true)],
+            sortDescriptors: [
+                NSSortDescriptor(keyPath: \TodoItem.completionTime, ascending: true),
+                NSSortDescriptor(keyPath: \TodoItem.order, ascending: true)
+            ],
             predicate: NSPredicate(format: "list == %@", list)
         )
     }
@@ -73,6 +76,7 @@ struct TodoListView: View {
                 }
             }
             .listStyle(.plain)
+            .animation(.default, value: activeItems.count)
             #if os(iOS)
             .environment(\.editMode, .constant(.active))
             #endif
@@ -109,8 +113,10 @@ struct TodoListView: View {
         }
         .navigationTitle(list.name ?? "Untitled")
         .toolbar {
-            ToolbarItem {
-                SyncStatusView(cloudKitManager: cloudKitManager)
+            if cloudKitManager.syncStatus.shouldShowIcon {
+                ToolbarItem {
+                    SyncStatusView(cloudKitManager: cloudKitManager)
+                }
             }
 
             ToolbarItem {

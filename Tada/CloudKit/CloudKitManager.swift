@@ -27,6 +27,15 @@ final class CloudKitManager {
                 return false
             }
         }
+
+        var shouldShowIcon: Bool {
+            switch self {
+            case .syncing, .error:
+                return true
+            case .idle, .success:
+                return false
+            }
+        }
     }
 
     var syncStatus: SyncStatus = .idle

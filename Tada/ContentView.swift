@@ -20,6 +20,7 @@ struct ContentView: View {
         } detail: {
             if let list = selectedList {
                 TodoListView(list: list, cloudKitManager: cloudKitManager)
+                    .id(list.objectID)
             } else {
                 ContentUnavailableView(
                     "No List Selected",

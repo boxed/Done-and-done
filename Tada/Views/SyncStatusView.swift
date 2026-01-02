@@ -12,10 +12,6 @@ struct SyncStatusView: View {
     var body: some View {
         Group {
             switch cloudKitManager.syncStatus {
-            case .idle, .success:
-                Image(systemName: "icloud")
-                    .foregroundStyle(.secondary)
-                    .opacity(0)
             case .syncing:
                 Image(systemName: "icloud")
                     .foregroundStyle(.secondary)
@@ -30,6 +26,8 @@ struct SyncStatusView: View {
             case .error:
                 Image(systemName: "exclamationmark.icloud.fill")
                     .foregroundStyle(.red)
+            case .idle, .success:
+                EmptyView()
             }
         }
     }
