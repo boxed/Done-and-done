@@ -10,6 +10,10 @@ struct ContentView: View {
     @State private var selectedList: TodoList?
     @State private var cloudKitManager = CloudKitManager()
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+    
+    init(){
+        UINavigationBar.setAnimationsEnabled(false)
+    }
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
