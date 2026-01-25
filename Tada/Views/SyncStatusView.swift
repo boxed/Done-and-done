@@ -8,6 +8,7 @@ import SwiftUI
 struct SyncStatusView: View {
     var cloudKitManager: CloudKitManager
     @State private var isPulsing = false
+    @State private var showingErrorAlert = false
 
     var body: some View {
         Group {
@@ -23,9 +24,19 @@ struct SyncStatusView: View {
                     .onDisappear {
                         isPulsing = false
                     }
-            case .error:
-                Image(systemName: "exclamationmark.icloud.fill")
-                    .foregroundStyle(.red)
+            case .error(let errorMessage):
+                Button {
+                    showingErrorAlert = true
+                } label: {
+                    Image(systemName: "exclamationmark.icloud.fill")
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+                .alert("Sync Error", isPresented: $showingErrorAlert) {
+                    Button("OK", role: .cancel) { }
+                } message: {
+                    Text(errorMessage)
+                }
             case .idle, .success:
                 EmptyView()
             }
