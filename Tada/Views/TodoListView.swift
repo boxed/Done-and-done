@@ -77,6 +77,9 @@ struct TodoListView: View {
             }
             .listStyle(.plain)
             .animation(.default, value: activeItems.count)
+            .refreshable {
+                cloudKitManager.triggerSync()
+            }
             #if os(iOS)
             .environment(\.editMode, .constant(.active))
             #endif

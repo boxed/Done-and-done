@@ -15,6 +15,7 @@ struct ListsSidebarView: View {
     private var lists: FetchedResults<TodoList>
 
     @Binding var selectedList: TodoList?
+    var cloudKitManager: CloudKitManager
 
     @State private var showingNewListDialog = false
     @State private var newListName = ""
@@ -85,6 +86,9 @@ struct ListsSidebarView: View {
             }
             .onMove(perform: moveLists)
             .onDelete(perform: confirmDeleteLists)
+        }
+        .refreshable {
+            cloudKitManager.triggerSync()
         }
         .navigationTitle("Lists")
         .toolbar {

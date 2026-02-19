@@ -12,12 +12,14 @@ struct ContentView: View {
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
     
     init(){
+        #if !os(macOS)
         UINavigationBar.setAnimationsEnabled(false)
+        #endif
     }
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            ListsSidebarView(selectedList: $selectedList)
+            ListsSidebarView(selectedList: $selectedList, cloudKitManager: cloudKitManager)
                 #if os(macOS)
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220)
                 #endif
