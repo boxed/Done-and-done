@@ -178,6 +178,9 @@ struct ListsSidebarView: View {
             newListName = ""
             showingNewListDialog = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: .syncNow)) { _ in
+            cloudKitManager.triggerSync()
+        }
     }
 
     private func startEditing(_ list: TodoList) {

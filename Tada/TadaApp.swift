@@ -59,6 +59,16 @@ struct TadaApp: App {
                 .keyboardShortcut("n", modifiers: .command)
             }
 
+            #if os(macOS)
+            CommandGroup(after: .newItem) {
+                Divider()
+                Button("Synchronize Now") {
+                    NotificationCenter.default.post(name: .syncNow, object: nil)
+                }
+                .keyboardShortcut("r", modifiers: .command)
+            }
+            #endif
+
             CommandMenu("List") {
                 Button("Mark Complete") {
                     if let item = selectedItem {
@@ -103,6 +113,7 @@ struct TadaApp: App {
 extension Notification.Name {
     static let newList = Notification.Name("newList")
     static let newItem = Notification.Name("newItem")
+    static let syncNow = Notification.Name("syncNow")
     static let toggleComplete = Notification.Name("toggleComplete")
 }
 
