@@ -188,6 +188,7 @@ struct ShareButton: View {
     let list: TodoList
     @Binding var currentShare: CKShare?
     @Binding var showingShareSheet: Bool
+    @State private var isLoading = false
 
     var body: some View {
         #if os(macOS)
@@ -197,10 +198,14 @@ struct ShareButton: View {
             Label("Share", systemImage: list.isShared ? "person.2.fill" : "person.badge.plus")
         }
         #else
-        Button {
-            shareList()
-        } label: {
-            Label("Share", systemImage: list.isShared ? "person.2.fill" : "person.badge.plus")
+        if isLoading {
+            ProgressView()
+        } else {
+            Button {
+                shareList()
+            } label: {
+                Label("Share", systemImage: list.isShared ? "person.2.fill" : "person.badge.plus")
+            }
         }
         #endif
     }
@@ -239,14 +244,20 @@ struct ShareButton: View {
     #endif
 
     private func shareList() {
-        PersistenceController.shared.share(list) { share, error in
-            if let error = error {
-                print("Failed to share: \(error)")
-                return
-            }
-            if let share = share {
-                currentShare = share
-                showingShareSheet = true
+        isLoading = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            PersistenceController.shared.share(list) { share, error in
+                DispatchQueue.main.async {
+                    isLoading = false
+                    if let error = error {
+                        print("Failed to share: \(error)")
+                        return
+                    }
+                    if let share = share {
+                        currentShare = share
+                        showingShareSheet = true
+                    }
+                }
             }
         }
     }
