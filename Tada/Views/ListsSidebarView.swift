@@ -233,7 +233,7 @@ struct ListsSidebarView: View {
     private func deleteList(_ list: TodoList) {
         withAnimation {
             if selectedList == list {
-                selectedList = lists.first { $0 != list }
+                selectedList = nil
             }
             viewContext.delete(list)
             try? viewContext.save()

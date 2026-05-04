@@ -74,7 +74,13 @@ final class CloudKitManager {
                 if event.endDate == nil {
                     syncStatus = .syncing
                 } else if let error = event.error {
-                    syncStatus = .error(error.localizedDescription)
+                    if Self.isChangeTokenExpired(error) {
+                        print("Change token expired — resetting local store for full re-sync")
+                        PersistenceController.shared.resetCloudKitSync()
+                        syncStatus = .syncing
+                    } else {
+                        syncStatus = .error(error.localizedDescription)
+                    }
                 } else {
                     syncStatus = .success
                     lastSyncDate = Date()
@@ -98,6 +104,24 @@ final class CloudKitManager {
         } catch {
             print("Failed to get account status: \(error)")
         }
+    }
+
+    private static func isChangeTokenExpired(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        // Direct CKError.changeTokenExpired
+        if nsError.code == CKError.changeTokenExpired.rawValue {
+            return true
+        }
+        // Wrapped in a partial failure
+        if nsError.code == CKError.partialFailure.rawValue,
+           let partialErrors = nsError.userInfo[CKPartialErrorsByItemIDKey] as? [AnyHashable: Error] {
+            return partialErrors.values.contains { ($0 as NSError).code == CKError.changeTokenExpired.rawValue }
+        }
+        // CoreData wraps CKErrors in its own domain
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
+            return isChangeTokenExpired(underlying)
+        }
+        return false
     }
 
     func triggerSync() {
