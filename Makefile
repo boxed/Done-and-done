@@ -44,7 +44,9 @@ cloudkit-diff: cloudkit-export
 cloudkit-deploy-schema: cloudkit-diff
 	@echo
 	@echo "cktool cannot write to production. Deploy from the CloudKit Console:"
-	@echo "  1. select the $(CONTAINER) container"
-	@echo "  2. open any Schema page, then 'Deploy Schema Changes...'"
+	@echo "  1. CloudKit Database, then check the container in the top left — it opens"
+	@echo "     whichever container it feels like, so switch it to $(CONTAINER)"
+	@echo "  2. 'Deploy Schema Changes...' in the bottom left link list, under Settings"
+	@echo "     (not on the Schema pages), with the environment set to Development"
 	@echo "  3. review the additions listed above, then Deploy"
 	@open "https://icloud.developer.apple.com/dashboard/"
