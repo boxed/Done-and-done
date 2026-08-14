@@ -10,12 +10,6 @@ struct ContentView: View {
     @State private var cloudKitManager = CloudKitManager()
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
 
-    init(){
-        #if !os(macOS)
-        UINavigationBar.setAnimationsEnabled(false)
-        #endif
-    }
-
     var body: some View {
         #if os(macOS)
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -44,20 +38,46 @@ struct ContentView: View {
     }
 
     #if !os(macOS)
-    @State private var preferredColumn: NavigationSplitViewColumn = .sidebar
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var path: [TodoList] = []
 
+    @ViewBuilder
     private var iOSNavigationView: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility, preferredCompactColumn: $preferredColumn) {
-            ListsSidebarView(selectedList: $selectedList, cloudKitManager: cloudKitManager)
-        } detail: {
-            detailView
-        }
-        .onChange(of: selectedList) { _, newValue in
-            preferredColumn = newValue != nil ? .detail : .sidebar
-        }
-        .onChange(of: preferredColumn) { _, newValue in
-            if newValue == .sidebar {
-                selectedList = nil
+        if horizontalSizeClass == .compact {
+            // On iPhone this is a plain navigation stack rather than a compact
+            // NavigationSplitView. A tap on a row pushes because the link appends to `path`, and
+            // a pop always removes it again. The split view instead navigated by *changing the
+            // selection*, and relied on SwiftUI writing `preferredCompactColumn` back to us on
+            // pop. When that write-back didn't happen, `selectedList` stayed pointing at the list
+            // we had just left, so tapping that same row changed nothing and no push happened —
+            // navigation looked dead until the app was force quit.
+            NavigationStack(path: $path) {
+                ListsSidebarView(selectedList: $selectedList, cloudKitManager: cloudKitManager)
+                    .navigationDestination(for: TodoList.self) { list in
+                        TodoListView(list: list, cloudKitManager: cloudKitManager)
+                            .id(list.objectID)
+                    }
+            }
+            .onChange(of: path) { _, newValue in
+                if selectedList != newValue.last {
+                    selectedList = newValue.last
+                }
+            }
+            .onChange(of: selectedList) { _, newValue in
+                // Selecting a list in code (creating or duplicating one) still opens it.
+                if let list = newValue {
+                    if path.last != list {
+                        path = [list]
+                    }
+                } else if !path.isEmpty {
+                    path = []
+                }
+            }
+        } else {
+            NavigationSplitView(columnVisibility: $columnVisibility) {
+                ListsSidebarView(selectedList: $selectedList, cloudKitManager: cloudKitManager)
+            } detail: {
+                detailView
             }
         }
     }

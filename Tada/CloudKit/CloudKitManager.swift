@@ -69,7 +69,11 @@ final class CloudKitManager {
         Task { @MainActor in
             switch event.type {
             case .setup:
-                break
+                // A failed setup is fatal for mirroring: no import/export events follow, so if
+                // it isn't surfaced here the app looks like it is syncing fine forever.
+                if let error = event.error {
+                    syncStatus = .error(error.localizedDescription)
+                }
             case .import, .export:
                 if event.endDate == nil {
                     syncStatus = .syncing
@@ -127,16 +131,17 @@ final class CloudKitManager {
     func triggerSync() {
         // Force a save which will trigger CloudKit sync
         PersistenceController.shared.save()
-        syncStatus = .syncing
+
+        // Don't claim success we haven't seen: the real import/export events drive the status
+        // from here. If mirroring is dead no events arrive at all, so only fall back to idle —
+        // and never overwrite an error, which is the one thing worth showing.
+        if syncStatus != .syncing {
+            syncStatus = .syncing
+        }
 
         Task {
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.sleep(for: .seconds(10))
             if syncStatus == .syncing {
-                syncStatus = .success
-                lastSyncDate = Date()
-            }
-            try? await Task.sleep(for: .seconds(2))
-            if syncStatus == .success {
                 syncStatus = .idle
             }
         }

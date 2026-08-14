@@ -32,7 +32,11 @@ struct ListsSidebarView: View {
 
     var body: some View {
         List(selection: $selectedList) {
-            ForEach(lists) { list in
+            // Identify rows by objectID, not by the `id` attribute: that attribute is optional,
+            // and CloudKit imports can leave it nil or duplicate it across records. Two rows
+            // sharing an identity collapse into one in SwiftUI — the second list renders as a
+            // copy of the first and can't be opened.
+            ForEach(lists, id: \.objectID) { list in
                 NavigationLink(value: list) {
                     if editingList == list {
                         TextField("List name", text: $editingName)
@@ -92,6 +96,14 @@ struct ListsSidebarView: View {
         }
         .navigationTitle("Lists")
         .toolbar {
+            // Sync problems have to be visible here too — this is where you end up when sync
+            // breaks, and the indicator used to exist only inside a list's toolbar.
+            if cloudKitManager.syncStatus.shouldShowIcon {
+                ToolbarItem {
+                    SyncStatusView(cloudKitManager: cloudKitManager)
+                }
+            }
+
             ToolbarItem {
                 Button {
                     newListName = ""

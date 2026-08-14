@@ -46,7 +46,7 @@ struct TodoListView: View {
         VStack(spacing: 0) {
             List {
                 // Active items section
-                ForEach(activeItems) { item in
+                ForEach(activeItems, id: \.objectID) { item in
                     TodoItemRow(
                         item: item,
                         isSelected: selectedItem == item
@@ -62,7 +62,7 @@ struct TodoListView: View {
                 // Completed items section
                 if !completedItems.isEmpty {
                     Section {
-                        ForEach(completedItems) { item in
+                        ForEach(completedItems, id: \.objectID) { item in
                             TodoItemRow(item: item, isSelected: selectedItem == item) {
                                 deleteItem(item)
                             } onSelect: {
