@@ -9,7 +9,7 @@ help:
 	@echo "  make cloudkit-export            Export the development schema to $(SCHEMA)"
 	@echo "  make cloudkit-production-schema  Print the current production schema"
 	@echo "  make cloudkit-diff              Diff development against production"
-	@echo "  make cloudkit-deploy-schema     Copy the development schema into production"
+	@echo "  make cloudkit-deploy-schema     Show the diff, then deploy from the Console"
 	@echo
 	@echo "All of these need a CloudKit management token once per machine:"
 	@echo "  create one at https://icloud.developer.apple.com/dashboard/ under"
@@ -36,8 +36,15 @@ cloudkit-diff: cloudkit-export
 	fi; \
 	rm -f $(SCHEMA).production
 
-# The production schema is append-only: record types and fields created here can never be
-# removed or retyped. Run cloudkit-diff first and read what is about to be added.
-cloudkit-deploy-schema: cloudkit-export
-	xcrun cktool import-schema --team-id $(TEAM) --container-id $(CONTAINER) \
-		--environment production --file $(SCHEMA)
+# cktool can only read production: import-schema and validate-schema both reject it with
+# "endpoint not applicable in the environment 'production'". Deploying the development schema
+# to production is only possible from the CloudKit Console, so this target shows the diff and
+# hands over. The production schema is append-only — whatever is deployed can never be removed
+# or retyped, so read the additions above before clicking Deploy.
+cloudkit-deploy-schema: cloudkit-diff
+	@echo
+	@echo "cktool cannot write to production. Deploy from the CloudKit Console:"
+	@echo "  1. select the $(CONTAINER) container"
+	@echo "  2. open any Schema page, then 'Deploy Schema Changes...'"
+	@echo "  3. review the additions listed above, then Deploy"
+	@open "https://icloud.developer.apple.com/dashboard/"
