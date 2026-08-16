@@ -20,7 +20,7 @@ struct TodoItemRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Button {
-                withAnimation {
+                withAnimation(.quick) {
                     item.toggleCompletion()
                     try? viewContext.save()
                 }
@@ -65,7 +65,7 @@ struct TodoItemRow: View {
             Spacer(minLength: 0)
 
             Button {
-                withAnimation {
+                withAnimation(.quick) {
                     item.toggleStarred()
                     try? viewContext.save()
                 }
@@ -84,7 +84,7 @@ struct TodoItemRow: View {
         }
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             Button {
-                withAnimation {
+                withAnimation(.quick) {
                     item.toggleStarred()
                     try? viewContext.save()
                 }
@@ -104,7 +104,7 @@ struct TodoItemRow: View {
             }
 
             Button {
-                withAnimation {
+                withAnimation(.quick) {
                     item.toggleStarred()
                     try? viewContext.save()
                 }
@@ -116,7 +116,7 @@ struct TodoItemRow: View {
             }
 
             Button {
-                withAnimation {
+                withAnimation(.quick) {
                     item.toggleCompletion()
                     try? viewContext.save()
                 }

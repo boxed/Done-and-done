@@ -10,7 +10,7 @@ struct ListsSidebarView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \TodoList.order, ascending: true)],
-        animation: .default
+        animation: .quick
     )
     private var lists: FetchedResults<TodoList>
 
@@ -224,7 +224,7 @@ struct ListsSidebarView: View {
             return
         }
 
-        withAnimation {
+        withAnimation(.quick) {
             let newList = TodoList.create(
                 name: trimmedName,
                 order: Int32(lists.count),
@@ -243,7 +243,7 @@ struct ListsSidebarView: View {
     }
 
     private func deleteList(_ list: TodoList) {
-        withAnimation {
+        withAnimation(.quick) {
             if selectedList == list {
                 selectedList = nil
             }
@@ -273,7 +273,7 @@ struct ListsSidebarView: View {
         let trimmedName = duplicateListName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return }
 
-        withAnimation {
+        withAnimation(.quick) {
             let newList = TodoList.create(
                 name: trimmedName,
                 order: Int32(lists.count),

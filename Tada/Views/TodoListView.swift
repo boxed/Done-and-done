@@ -76,9 +76,9 @@ struct TodoListView: View {
                 }
             }
             .listStyle(.plain)
-            .animation(.default, value: activeItems.count)
+            .animation(nil, value: activeItems.count)
             .refreshable {
-                cloudKitManager.triggerSync()
+                await cloudKitManager.refresh()
             }
             #if os(iOS)
             .environment(\.editMode, .constant(.active))
@@ -157,13 +157,15 @@ struct TodoListView: View {
             list: list,
             in: viewContext
         )
-        try? viewContext.save()
+        withoutAnimation {
+            try? viewContext.save()
+        }
         newItemText = ""
         selectedItem = newItem
     }
 
     private func deleteItem(_ item: TodoItem) {
-        withAnimation {
+        withAnimation(.quick) {
             if selectedItem == item {
                 selectedItem = nil
             }
