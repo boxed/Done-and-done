@@ -41,6 +41,40 @@ DEFINE SCHEMA
         GRANT READ TO "_world"
     );
 
+    RECORD TYPE TodoItem (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        completionTime  TIMESTAMP QUERYABLE SORTABLE,
+        creationTime    TIMESTAMP QUERYABLE SORTABLE,
+        isHidden        INT64 QUERYABLE SORTABLE,
+        listID          STRING QUERYABLE SEARCHABLE SORTABLE,
+        order           INT64 QUERYABLE SORTABLE,
+        startedTime     TIMESTAMP QUERYABLE SORTABLE,
+        text            STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE TodoList (
+        "___createTime"  TIMESTAMP,
+        "___createdBy"   REFERENCE,
+        "___etag"        STRING,
+        "___modTime"     TIMESTAMP,
+        "___modifiedBy"  REFERENCE,
+        "___recordID"    REFERENCE,
+        listCreationDate TIMESTAMP QUERYABLE SORTABLE,
+        name             STRING QUERYABLE SEARCHABLE SORTABLE,
+        order            INT64 QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
     RECORD TYPE Users (
         "___createTime" TIMESTAMP,
         "___createdBy"  REFERENCE,
