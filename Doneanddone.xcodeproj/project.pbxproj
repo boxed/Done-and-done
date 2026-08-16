@@ -296,6 +296,10 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				ICLOUD_CONTAINER_ENVIRONMENT = Development;
+				"ICLOUD_CONTAINER_ENVIRONMENT[sdk=iphoneos*]" = Production;
+				"ICLOUD_CONTAINER_ENVIRONMENT[sdk=macosx*]" = Production;
+				"ICLOUD_CONTAINER_ENVIRONMENT[sdk=xros*]" = Production;
 				INFOPLIST_FILE = Tada/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -342,6 +346,10 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				ICLOUD_CONTAINER_ENVIRONMENT = Development;
+				"ICLOUD_CONTAINER_ENVIRONMENT[sdk=iphoneos*]" = Production;
+				"ICLOUD_CONTAINER_ENVIRONMENT[sdk=macosx*]" = Production;
+				"ICLOUD_CONTAINER_ENVIRONMENT[sdk=xros*]" = Production;
 				INFOPLIST_FILE = Tada/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
