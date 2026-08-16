@@ -30,10 +30,14 @@ extension TodoList {
 
     static func create(name: String, order: Int32, in context: NSManagedObjectContext) -> TodoList {
         let list = TodoList(context: context)
-        list.id = UUID()
+        let id = UUID()
+        list.id = id
         list.name = name
         list.creationDate = Date()
         list.order = order
+        // Each list syncs in its own record zone so it can be shared on its own; the zone is
+        // named after the list from the moment it exists.
+        list.zoneName = CloudKitManager.zoneName(forListID: id)
         return list
     }
 }

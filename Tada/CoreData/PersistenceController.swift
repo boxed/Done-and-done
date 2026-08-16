@@ -6,10 +6,12 @@
 import CoreData
 import CloudKit
 
+/// The local store. Syncing is no longer Core Data's job: `CloudKitManager` owns that, driving
+/// CKSyncEngine against records mapped from these entities.
 struct PersistenceController {
     static let shared = PersistenceController()
 
-    let container: NSPersistentCloudKitContainer
+    let container: NSPersistentContainer
 
     static var preview: PersistenceController = {
         let controller = PersistenceController(inMemory: true)
@@ -41,8 +43,22 @@ struct PersistenceController {
         return controller
     }()
 
+    let isInMemory: Bool
+
+    /// Loaded once and shared. Building a second NSPersistentContainer normally parses the model
+    /// again, and two copies of the same model make Core Data unable to match an entity to its
+    /// generated class ("Failed to find a unique match for an NSEntityDescription").
+    private static let managedObjectModel: NSManagedObjectModel = {
+        guard let url = Bundle.main.url(forResource: "Tada", withExtension: "momd"),
+              let model = NSManagedObjectModel(contentsOf: url) else {
+            fatalError("Failed to load the Tada managed object model")
+        }
+        return model
+    }()
+
     init(inMemory: Bool = false) {
-        container = NSPersistentCloudKitContainer(name: "Tada")
+        isInMemory = inMemory
+        container = NSPersistentContainer(name: "Tada", managedObjectModel: Self.managedObjectModel)
 
         guard let description = container.persistentStoreDescriptions.first else {
             fatalError("No persistent store description found")
@@ -50,15 +66,10 @@ struct PersistenceController {
 
         if inMemory {
             description.url = URL(fileURLWithPath: "/dev/null")
-            description.cloudKitContainerOptions = nil
         } else {
-            // Configure CloudKit
-            let cloudKitOptions = NSPersistentCloudKitContainerOptions(
-                containerIdentifier: "iCloud.net.kodare.Tada"
-            )
-            description.cloudKitContainerOptions = cloudKitOptions
-
-            // Enable persistent history tracking for CloudKit sync
+            // The store was created by NSPersistentCloudKitContainer, which turned history
+            // tracking on. It has to stay on: Core Data refuses to open a store that once had
+            // history tracking without it.
             description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
             description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
         }
@@ -75,44 +86,53 @@ struct PersistenceController {
         // Set up undo manager
         container.viewContext.undoManager = UndoManager()
 
-        // Set up query generation for consistent reads
+        // Set up query generation for consistent reads. In-memory stores don't support it.
+        if !inMemory {
+            do {
+                try container.viewContext.setQueryGenerationFrom(.current)
+            } catch {
+                print("Failed to set query generation: \(error)")
+            }
+        }
+
+        if !inMemory {
+            backfillSyncIdentifiers()
+        }
+    }
+
+    // MARK: - Sync Identifiers
+
+    /// Every record needs a stable name to sync under, and every list needs a zone to live in.
+    /// Both are optional in the model — CloudKit imports could leave `id` nil — so repair them
+    /// before the sync engine ever looks at the data.
+    func backfillSyncIdentifiers() {
+        let context = container.viewContext
+        var changed = false
+
+        let listRequest: NSFetchRequest<TodoList> = TodoList.fetchRequest()
+        let itemRequest: NSFetchRequest<TodoItem> = TodoItem.fetchRequest()
+
         do {
-            try container.viewContext.setQueryGenerationFrom(.current)
+            for list in try context.fetch(listRequest) {
+                if list.id == nil {
+                    list.id = UUID()
+                    changed = true
+                }
+                if list.zoneName == nil, let id = list.id {
+                    list.zoneName = CloudKitManager.zoneName(forListID: id)
+                    changed = true
+                }
+            }
+            for item in try context.fetch(itemRequest) where item.id == nil {
+                item.id = UUID()
+                changed = true
+            }
+            if changed {
+                try context.save()
+            }
         } catch {
-            print("Failed to set query generation: \(error)")
+            print("Failed to backfill sync identifiers: \(error)")
         }
-    }
-
-    // MARK: - CloudKit Sharing
-
-    func share(_ list: TodoList, completion: @escaping (CKShare?, Error?) -> Void) {
-        let container = self.container
-
-        container.share([list], to: nil) { objectIDs, share, ckContainer, error in
-            if let error = error {
-                completion(nil, error)
-                return
-            }
-
-            guard let share = share else {
-                completion(nil, NSError(domain: "Tada", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create share"]))
-                return
-            }
-
-            share[CKShare.SystemFieldKey.title] = list.name
-            completion(share, nil)
-        }
-    }
-
-    func fetchShare(for list: TodoList) -> CKShare? {
-        guard let shares = try? container.fetchShares(matching: [list.objectID]) else {
-            return nil
-        }
-        return shares[list.objectID]
-    }
-
-    func isShared(_ list: TodoList) -> Bool {
-        fetchShare(for: list) != nil
     }
 
     // MARK: - Cleanup Old Completed Items
@@ -134,52 +154,6 @@ struct PersistenceController {
         } catch {
             print("Failed to delete old completed items: \(error)")
         }
-    }
-
-    // MARK: - Reset Sync
-
-    /// Destroys and recreates the local persistent store, forcing a full re-sync from CloudKit.
-    /// Use when sync gets stuck with "Change Token Expired" errors.
-    func resetCloudKitSync() {
-        print("Resetting CloudKit sync")
-        guard let description = container.persistentStoreDescriptions.first,
-              let storeURL = description.url else {
-            print("No store URL found")
-            return
-        }
-
-        let coordinator = container.persistentStoreCoordinator
-
-        // Remove existing stores
-        for store in coordinator.persistentStores {
-            do {
-                try coordinator.remove(store)
-            } catch {
-                print("Failed to remove store: \(error)")
-            }
-        }
-
-        // Delete the store files
-        let fileManager = FileManager.default
-        let storePath = storeURL.path
-        for suffix in ["", "-wal", "-shm"] {
-            let fileURL = URL(fileURLWithPath: storePath + suffix)
-            try? fileManager.removeItem(at: fileURL)
-        }
-
-        // Also delete the CloudKit metadata
-        let ckMetadataURL = storeURL.deletingLastPathComponent().appendingPathComponent("ckAssets")
-        try? fileManager.removeItem(at: ckMetadataURL)
-
-        // Reload the store — CloudKit will do a full import
-        container.loadPersistentStores { _, error in
-            if let error = error {
-                print("Failed to reload store after reset: \(error)")
-            }
-        }
-
-        container.viewContext.automaticallyMergesChangesFromParent = true
-        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
     }
 
     // MARK: - Save Context

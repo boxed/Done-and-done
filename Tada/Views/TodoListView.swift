@@ -212,12 +212,14 @@ struct ShareButton: View {
 
     #if os(macOS)
     private func shareListMacOS() {
-        PersistenceController.shared.share(list) { share, error in
-            if let error = error {
+        Task { @MainActor in
+            let share: CKShare
+            do {
+                share = try await CloudKitManager.shared.share(list)
+            } catch {
                 print("Failed to share: \(error)")
                 return
             }
-            guard let share = share else { return }
 
             // Get the frontmost window
             guard let window = NSApp.keyWindow else { return }
@@ -245,19 +247,13 @@ struct ShareButton: View {
 
     private func shareList() {
         isLoading = true
-        DispatchQueue.global(qos: .userInitiated).async {
-            PersistenceController.shared.share(list) { share, error in
-                DispatchQueue.main.async {
-                    isLoading = false
-                    if let error = error {
-                        print("Failed to share: \(error)")
-                        return
-                    }
-                    if let share = share {
-                        currentShare = share
-                        showingShareSheet = true
-                    }
-                }
+        Task { @MainActor in
+            defer { isLoading = false }
+            do {
+                currentShare = try await CloudKitManager.shared.share(list)
+                showingShareSheet = true
+            } catch {
+                print("Failed to share: \(error)")
             }
         }
     }

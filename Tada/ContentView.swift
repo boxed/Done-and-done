@@ -7,7 +7,7 @@ import CoreData
 
 struct ContentView: View {
     @State private var selectedList: TodoList?
-    @State private var cloudKitManager = CloudKitManager()
+    @State private var cloudKitManager = CloudKitManager.shared
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
 
     var body: some View {

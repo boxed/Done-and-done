@@ -14,10 +14,19 @@ struct TadaApp: App {
     @FocusedValue(\.selectedList) var selectedList
     @FocusedValue(\.selectedItem) var selectedItem
 
+    #if os(iOS)
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #elseif os(macOS)
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #endif
+
     init() {
         #if os(iOS)
         UIApplication.shared.applicationSupportsShakeToEdit = true
         #endif
+        // Before any view can appear and create data: a save that happens with no observers
+        // installed would otherwise not be noticed as a change to sync.
+        CloudKitManager.shared.start()
     }
 
     var body: some Scene {

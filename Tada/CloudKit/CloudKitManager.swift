@@ -8,25 +8,22 @@ import CloudKit
 import CoreData
 import Combine
 
+/// Owns syncing. Each list lives in its own record zone so it can be shared independently, and
+/// there is one CKSyncEngine per database: the private one for lists we own, the shared one for
+/// lists other people have shared with us.
+///
+/// Unlike NSPersistentCloudKitContainer, every step here is observable — `fetchChanges()` is a
+/// real awaitable round trip, so the UI can show what is actually happening instead of guessing.
 @Observable
 @MainActor
-final class CloudKitManager {
+final class CloudKitManager: NSObject, CKSyncEngineDelegate {
+    static let shared = CloudKitManager()
+
     enum SyncStatus: Equatable {
         case idle
         case syncing
         case success
         case error(String)
-
-        static func == (lhs: SyncStatus, rhs: SyncStatus) -> Bool {
-            switch (lhs, rhs) {
-            case (.idle, .idle), (.syncing, .syncing), (.success, .success):
-                return true
-            case (.error(let l), .error(let r)):
-                return l == r
-            default:
-                return false
-            }
-        }
 
         var shouldShowIcon: Bool {
             switch self {
@@ -38,68 +35,107 @@ final class CloudKitManager {
         }
     }
 
+    static let containerIdentifier = "iCloud.net.kodare.Tada"
+
+    static func zoneName(forListID id: UUID) -> String {
+        "list-\(id.uuidString)"
+    }
+
     var syncStatus: SyncStatus = .idle
     var lastSyncDate: Date?
     var accountStatus: CKAccountStatus = .couldNotDetermine
 
-    private let container = CKContainer(identifier: "iCloud.net.kodare.Tada")
-    private var cancellables = Set<AnyCancellable>()
+    @ObservationIgnored let container = CKContainer(identifier: CloudKitManager.containerIdentifier)
+    @ObservationIgnored private var privateEngine: CKSyncEngine?
+    @ObservationIgnored private var sharedEngine: CKSyncEngine?
+    @ObservationIgnored private var inFlightOperations = 0
 
-    init() {
+    /// Set while writing fetched records into Core Data, so the resulting save isn't mistaken for
+    /// a local edit and sent straight back to the server.
+    @ObservationIgnored var isApplyingRemoteChanges = false
+
+    /// Deletions have to be read before the context saves, but can only be enqueued after.
+    @ObservationIgnored var pendingZoneDeletions: [CKRecordZone.ID] = []
+    @ObservationIgnored var pendingRecordDeletions: [CKRecord.ID] = []
+
+    var viewContextForObservation: NSManagedObjectContext {
+        PersistenceController.shared.container.viewContext
+    }
+
+    private override init() {
+        super.init()
+    }
+
+    // MARK: - Lifecycle
+
+    func start() {
+        guard privateEngine == nil else { return }
+
+        privateEngine = makeEngine(for: container.privateCloudDatabase, scope: .private)
+        sharedEngine = makeEngine(for: container.sharedCloudDatabase, scope: .shared)
+
+        observeLocalChanges()
+        enqueueUnsyncedObjects()
+
         Task {
             await checkAccountStatus()
         }
-        setupNotifications()
     }
 
-    private func setupNotifications() {
-        NotificationCenter.default.publisher(for: NSPersistentCloudKitContainer.eventChangedNotification)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] notification in
-                self?.handleCloudKitEvent(notification)
-            }
-            .store(in: &cancellables)
+    private func makeEngine(for database: CKDatabase, scope: CKDatabase.Scope) -> CKSyncEngine {
+        var configuration = CKSyncEngine.Configuration(
+            database: database,
+            stateSerialization: loadStateSerialization(for: scope),
+            delegate: self
+        )
+        configuration.automaticallySync = true
+        return CKSyncEngine(configuration)
     }
 
-    private nonisolated func handleCloudKitEvent(_ notification: Notification) {
-        guard let event = notification.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey] as? NSPersistentCloudKitContainer.Event else {
-            return
+    /// Records in a zone owned by someone else belong to the shared database.
+    func engineForZone(ownerName: String?) -> CKSyncEngine? {
+        if let ownerName, ownerName != CKCurrentUserDefaultName {
+            return sharedEngine
         }
+        return privateEngine
+    }
 
-        Task { @MainActor in
-            switch event.type {
-            case .setup:
-                // A failed setup is fatal for mirroring: no import/export events follow, so if
-                // it isn't surfaced here the app looks like it is syncing fine forever.
-                if let error = event.error {
-                    syncStatus = .error(error.localizedDescription)
-                }
-            case .import, .export:
-                if event.endDate == nil {
-                    syncStatus = .syncing
-                } else if let error = event.error {
-                    if Self.isChangeTokenExpired(error) {
-                        print("Change token expired — resetting local store for full re-sync")
-                        PersistenceController.shared.resetCloudKitSync()
-                        syncStatus = .syncing
-                    } else {
-                        syncStatus = .error(error.localizedDescription)
-                    }
-                } else {
-                    syncStatus = .success
-                    lastSyncDate = Date()
-                    // Reset to idle after showing success
-                    Task {
-                        try? await Task.sleep(for: .seconds(2))
-                        if syncStatus == .success {
-                            syncStatus = .idle
-                        }
-                    }
-                }
-            @unknown default:
-                break
-            }
+    // MARK: - Manual Sync
+
+    /// A real round trip, so pull-to-refresh reflects actual work. Fetching first then sending
+    /// means the caller sees remote changes before their own are pushed.
+    func refresh() async {
+        guard let privateEngine else { return }
+        beginOperation()
+        defer { endOperation(error: nil) }
+
+        do {
+            try await privateEngine.fetchChanges()
+            try await sharedEngine?.fetchChanges()
+            try await privateEngine.sendChanges()
+            try await sharedEngine?.sendChanges()
+            lastSyncDate = Date()
+        } catch {
+            endOperation(error: error)
         }
+    }
+
+    func triggerSync() {
+        Task { await refresh() }
+    }
+
+    /// Sharing needs the zone to exist server-side, so pending changes must land first.
+    func privateEngineSendChanges() async throws {
+        guard let privateEngine else { return }
+        try await privateEngine.sendChanges()
+    }
+
+    func beginSharingOperation() {
+        beginOperation()
+    }
+
+    func reportSharingFailure(_ error: Error) {
+        endOperation(error: error)
     }
 
     func checkAccountStatus() async {
@@ -110,40 +146,176 @@ final class CloudKitManager {
         }
     }
 
-    private static func isChangeTokenExpired(_ error: Error) -> Bool {
-        let nsError = error as NSError
-        // Direct CKError.changeTokenExpired
-        if nsError.code == CKError.changeTokenExpired.rawValue {
-            return true
-        }
-        // Wrapped in a partial failure
-        if nsError.code == CKError.partialFailure.rawValue,
-           let partialErrors = nsError.userInfo[CKPartialErrorsByItemIDKey] as? [AnyHashable: Error] {
-            return partialErrors.values.contains { ($0 as NSError).code == CKError.changeTokenExpired.rawValue }
-        }
-        // CoreData wraps CKErrors in its own domain
-        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
-            return isChangeTokenExpired(underlying)
-        }
-        return false
+    // MARK: - Status Bookkeeping
+
+    private func beginOperation() {
+        inFlightOperations += 1
+        syncStatus = .syncing
     }
 
-    func triggerSync() {
-        // Force a save which will trigger CloudKit sync
-        PersistenceController.shared.save()
+    private func endOperation(error: Error?) {
+        inFlightOperations = max(0, inFlightOperations - 1)
 
-        // Don't claim success we haven't seen: the real import/export events drive the status
-        // from here. If mirroring is dead no events arrive at all, so only fall back to idle —
-        // and never overwrite an error, which is the one thing worth showing.
-        if syncStatus != .syncing {
-            syncStatus = .syncing
+        if let error {
+            syncStatus = .error(error.localizedDescription)
+            return
         }
+        guard inFlightOperations == 0 else { return }
+        if case .error = syncStatus { return }
 
+        syncStatus = .success
+        lastSyncDate = Date()
         Task {
-            try? await Task.sleep(for: .seconds(10))
-            if syncStatus == .syncing {
+            try? await Task.sleep(for: .seconds(2))
+            if syncStatus == .success {
                 syncStatus = .idle
             }
+        }
+    }
+
+    // MARK: - CKSyncEngineDelegate
+
+    func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
+        switch event {
+        case .stateUpdate(let update):
+            save(update.stateSerialization, for: syncEngine.database.databaseScope)
+
+        case .accountChange(let change):
+            handleAccountChange(change)
+
+        case .fetchedDatabaseChanges(let changes):
+            for deletion in changes.deletions {
+                deleteLocalList(inZone: deletion.zoneID)
+            }
+
+        case .fetchedRecordZoneChanges(let changes):
+            for modification in changes.modifications {
+                upsertLocalObject(from: modification.record)
+            }
+            for deletion in changes.deletions {
+                deleteLocalObject(recordID: deletion.recordID, recordType: deletion.recordType)
+            }
+            saveLocalChangesQuietly()
+
+        case .sentRecordZoneChanges(let sent):
+            for record in sent.savedRecords {
+                storeSystemFields(from: record)
+            }
+            for failure in sent.failedRecordSaves {
+                handleFailedSave(failure, syncEngine: syncEngine)
+            }
+            saveLocalChangesQuietly()
+
+        case .sentDatabaseChanges(let sent):
+            for failure in sent.failedZoneSaves {
+                print("Zone save failed: \(failure.zone.zoneID) \(failure.error)")
+            }
+
+        case .willFetchChanges, .willSendChanges:
+            beginOperation()
+
+        case .didFetchChanges, .didSendChanges:
+            endOperation(error: nil)
+
+        case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges:
+            break
+
+        @unknown default:
+            break
+        }
+    }
+
+    func nextRecordZoneChangeBatch(
+        _ context: CKSyncEngine.SendChangesContext,
+        syncEngine: CKSyncEngine
+    ) async -> CKSyncEngine.RecordZoneChangeBatch? {
+        let pending = syncEngine.state.pendingRecordZoneChanges.filter {
+            context.options.scope.contains($0)
+        }
+        guard !pending.isEmpty else { return nil }
+
+        return await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: pending) { recordID in
+            await MainActor.run {
+                guard let record = self.record(for: recordID) else {
+                    // The object is gone locally; drop the change rather than resending forever.
+                    syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+                    return nil
+                }
+                return record
+            }
+        }
+    }
+
+    // MARK: - Failure Recovery
+
+    private func handleFailedSave(
+        _ failure: CKSyncEngine.Event.SentRecordZoneChanges.FailedRecordSave,
+        syncEngine: CKSyncEngine
+    ) {
+        let recordID = failure.record.recordID
+        guard let ckError = failure.error as? CKError else { return }
+
+        switch ckError.code {
+        case .serverRecordChanged:
+            // Someone else wrote first. Take their record as the base so we keep the server's
+            // change tag, re-apply our values on top, and try again.
+            if let serverRecord = ckError.serverRecord {
+                storeSystemFields(from: serverRecord)
+                syncEngine.state.add(pendingRecordZoneChanges: [.saveRecord(recordID)])
+            }
+
+        case .zoneNotFound:
+            // The zone was never created, or was deleted out from under us. Recreate it and
+            // resend, otherwise this record can never land.
+            let zone = CKRecordZone(zoneID: recordID.zoneID)
+            syncEngine.state.add(pendingDatabaseChanges: [.saveZone(zone)])
+            syncEngine.state.add(pendingRecordZoneChanges: [.saveRecord(recordID)])
+
+        case .unknownItem:
+            syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+
+        default:
+            print("Record save failed permanently: \(recordID) \(ckError)")
+        }
+    }
+
+    private func handleAccountChange(_ change: CKSyncEngine.Event.AccountChange) {
+        switch change.changeType {
+        case .signIn, .switchAccounts:
+            // Everything local is unknown to the new account, so offer all of it.
+            enqueueAllLocalData()
+        case .signOut:
+            // Leave local data alone: deleting someone's lists because they signed out of
+            // iCloud would be a far worse bug than having them sit there unsynced.
+            break
+        @unknown default:
+            break
+        }
+    }
+
+    // MARK: - State Persistence
+
+    private func stateURL(for scope: CKDatabase.Scope) -> URL? {
+        guard let support = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first else { return nil }
+        let name = scope == .shared ? "sync-state-shared.json" : "sync-state-private.json"
+        return support.appendingPathComponent(name)
+    }
+
+    private func loadStateSerialization(for scope: CKDatabase.Scope) -> CKSyncEngine.State.Serialization? {
+        guard let url = stateURL(for: scope),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode(CKSyncEngine.State.Serialization.self, from: data)
+    }
+
+    private func save(_ serialization: CKSyncEngine.State.Serialization, for scope: CKDatabase.Scope) {
+        guard let url = stateURL(for: scope) else { return }
+        do {
+            try JSONEncoder().encode(serialization).write(to: url, options: .atomic)
+        } catch {
+            print("Failed to persist sync state: \(error)")
         }
     }
 }

@@ -92,7 +92,7 @@ struct ListsSidebarView: View {
             .onDelete(perform: confirmDeleteLists)
         }
         .refreshable {
-            cloudKitManager.triggerSync()
+            await cloudKitManager.refresh()
         }
         .navigationTitle("Lists")
         .toolbar {
